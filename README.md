@@ -1,2 +1,2 @@
-# BIO465
-Course work for BIO465 Bioinformatics
+# BIO465 Bioinformtics
+Course work for BIO465 Bioinformatics 
