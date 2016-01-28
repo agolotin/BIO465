@@ -1,0 +1,17 @@
+This directory contains a series of simple bash scripts that
+demonstrate a variety of UNIX commands that are commonly used
+in bioinformatics projects. 
+
+Many of the scripts use the file called mail-list.txt for
+demonstration purposes. There is also a file called 
+mail-list-tab.txt that is similar to mail-list.txt, except
+that it has tab delimiters rather than space delimiters.
+
+Please examine each script and
+learn about how the commands that are shown. After examine a
+script, execute it using a command such as the following and
+examine the output:
+
+bash 1_cat_example.sh
+
+Please let me know if you find any problems with these scripts.
