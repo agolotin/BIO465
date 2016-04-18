@@ -1,0 +1,80 @@
+---
+title: "BIO 465 Analysis Exercise 9"
+author: "Artem Golotin"
+date: March 11, 2016
+output: html_document
+---
+
+## Introduction
+
+Researchers at the Cambridge Research Institute profiled gene-expression levels in [HeLa cells](http://en.wikipedia.org/wiki/HeLa). They wanted to better understand the role that the [HNRNPC gene](http://en.wikipedia.org/wiki/HNRNPC) plays in "[protecting the transcriptome](http://europepmc.org/abstract/MED/23374342)". In the HeLa cells, they used [RNA interference](http://en.wikipedia.org/wiki/RNA_interference) to "knock down" expression of the HNRNPC gene and then used RNA-Seq to measure expression levels for _all_ genes in those cells.
+
+The raw data can be found [here](http://www.ncbi.nlm.nih.gov/Traces/sra/?study=ERP001458). I have mapped these data to the human reference genome (version _hg19_) and summarized the data to gene-level counts. You can find the scripts and code that I used for this [here](https://www.dropbox.com/s/gk6tcitq6dwou2z/BIO_465_Analysis_Exercise_9_Prep.Rmd?dl=0). It also contains code that I used to compare expression levels between HNRNPC knockdown cells and controls at the gene level and at the gene set level (using the [DESeq2](http://bioconductor.org/packages/release/bioc/html/DESeq2.html) and [GAGE](http://www.bioconductor.org/packages/release/bioc/html/gage.html) software packages, respectively).
+
+Below is a description of the resulting data files as well as another file that you will need for this assignment:
+
+* [ERP001458.tpm](https://www.dropbox.com/s/45gkf978lk4bt78/ERP001458.tpm?dl=0) = This file contains gene-level counts for the 4 HNRNPC knockdown replicates and 4 control replicates. These counts have been normalized using the "[transcripts per million](https://haroldpimentel.wordpress.com/2014/05/08/what-the-fpkm-a-review-rna-seq-expression-units/)" approach, which corrects for gene length and library size.
+
+* [ERP001458.pheno](https://www.dropbox.com/s/q6emds6bceocttc/ERP001458.pheno?dl=0) = This file indicates whether each sample was a knockdown or a control.
+
+* [ERP001458.deseq](https://www.dropbox.com/s/hilvwr9goolaouv/ERP001458.deseq?dl=0) = I used [DESeq2](http://bioconductor.org/packages/release/bioc/html/DESeq2.html) to compare gene-expression levels between HNRNPC knockdown cells and controls. This file indicates how differently the genes were expressed between the two conditions. As expected, HNRNPC was more differentially expressed between these two conditions than any other gene.
+
+* [ERP001458.gage](https://www.dropbox.com/s/fyc41op4fcjp3n2/ERP001458.gage?dl=0) = I used the [GAGE](http://www.bioconductor.org/packages/release/bioc/html/gage.html) package to identify gene sets that respond differently when HNRNPC is knocked down. (For this analysis, the gene sets are pathways from the [Reactome database](http://www.reactome.org). GAGE works somewhat similarly to [GSEA](http://www.pnas.org/content/102/43/15545.abstract), but it offers several improvements and is easier to use.) This file contains a p-value and a q-value (FDR) for each gene set. It also indicates how many genes are in each gene set (pathway). The gene sets that GAGE identified as most significant are listed at the top.
+
+* [c2.cp.reactome.v4.0.symbols.gmt](https://www.dropbox.com/s/xqo1btgaa61b02c/c2.cp.reactome.v4.0.symbols.gmt?dl=0) = This is the gene set database that I used for the GAGE analysis. It indicates which genes belong to each gene set. This file came from the [Molecular Signatures Database](http://www.broadinstitute.org/gsea/msigdb/index.jsp).
+
+## Instructions
+
+To complete this assignment, please do the following:
+
+1. Download each of the above files and examine their contents in a text editor.
+
+2. Devise your own gene-set analysis method and apply it to the HNRNPC data provided above. Your method should rank the gene sets according to differences in expression between the HNRNPC knockdown replicates and the control replicates. Gene sets that exhibit the greatest differences in expression (across all genes in the gene set) should be ranked toward the top of your list.
+
+3. After ranking the gene sets, write code that compares your rankings against the GAGE rankings provided above. How many of your top 20 gene sets are in the top 20 GAGE gene sets?
+
+## Guidelines
+
+Your method should be implemented as R code.
+
+Your method does not need to calculate a p-value for the gene sets. It just needs to order the gene sets according to overall differences in expression.
+
+Be as simple or as creative as you want! One simple approach would be to average the DESeq2 p-values for all genes in each gene set and determine which gene sets have the smallest average p-value. But you are welcome to develop a more advanced approach and see how it performs.
+
+In developing your method, feel free to use the gene-expression values, DESeq2 results, or both. You will also need to use c2.cp.reactome.v4.0.symbols.gmt to determine which genes belong to each gene set. Below is a code snippet that demostrates how you can read a GMT file into R and iterate through it:
+
+```{r}
+# Install GSEABase package from Bioconductor
+source("https://bioconductor.org/biocLite.R")
+biocLite("GSEABase")
+
+# Load library
+library(GSEABase)
+
+# You will need to change this path to where this file is located on your machine
+geneSetDatabase <- getGmt("/Users/agolotin/Desktop/BIO465/AnalysisExercise/ex9/c2.cp.reactome.v4.0.symbols.gmt")
+
+# Read the GMT file
+geneSetDatabase <- getGmt(gmtFilePath)
+
+# Loop through each gene set
+for (geneSetName in names(geneSetDatabase))
+{
+  # Create a variable that indicates which genes are associated with this gene set
+  geneSetGenes <- as.character(unlist(geneIds(geneSetDatabase[geneSetName])))
+}
+```
+
+## Submission
+
+Please create an R Markdown document that includes the following:
+
+1. A paragraph-length description of your method.
+
+2. Your code that implements the method.
+
+3. Your top 20 gene sets. Please indicate how many of your top 20 gene sets coincide with the top 20 gene sets identified by GAGE.
+
+You will be graded on whether you provide a clear description, functional code, and a brief summary of your results.
+
+Please knit this document and submit the resulting **HTML file** (not the Markdown file) via Learning Suite.

@@ -1,0 +1,255 @@
+---
+title: "BIO 465 Analysis Exercise 8"
+author: "Artem Golotin"
+date: March 4, 2016
+output: html_document
+---
+
+## Introduction
+
+For this assignment, you will gain experience doing gene-expression analysis. This assignment will require you to do more reading than some of the previous analysis exercises, but you won't be asked to write as much code. The goal is to help you gain additional familiarity with gene-expression data and how to evaluate its quality. In addition, you will perform a simple "differential expression" analysis.
+
+You will be graded on whether you provide code and interpretations below, as requested.
+
+## Installing and loading R packages
+
+A wide variety of tools exist for processing and analyzing gene-expression data, including microarray and RNA-Sequencing data. Many software packages have been written in the R statistical language. The Bioconductor framework (http://bioconductor.org) contains a collection of hundreds of analysis tools for bioinformatics research in general; many of these tools are focused on gene-expression analysis. It is worthwhile for any bioinformatician to become familiar with Bioconductor.
+
+One of the nice features of Bioconductor is that it is relatively easy to install software packages and their dependencies. For example, if you wanted to install the [DESeq2 package](http://bioconductor.org/packages/release/bioc/html/DESeq2.html), which is used for identifying differentially expressed genes, you would use the code shown below. Note: If you are executing this on BYU's supercomputer, you may need to first load the curl module (```module load curl```) at the command prompt (not within R).
+
+```{r message=FALSE, warning=FALSE, cache.comments=FALSE, results='hide'}
+source("https://bioconductor.org/biocLite.R")
+biocLite("DESeq2")
+```
+
+You can check to make sure this package was installed properly (and load it into memory) using the following command:
+
+```{r message=FALSE, warning=FALSE}
+library(DESeq2)
+```
+
+You will also need to install the following R packages: [RColorBrewer](https://cran.r-project.org/web/packages/RColorBrewer/index.html), [matrixStats](https://cran.r-project.org/web/packages/matrixStats/index.html), [RCurl](https://cran.r-project.org/web/packages/RCurl/index.html), [devtools](https://cran.r-project.org/web/packages/devtools/index.html). These packages are not part of the Bioconductor framework, so you can install these using the ```install.packages``` function. Please write code below to install these packages.
+
+```{r message=FALSE, warning=FALSE, cache.comments=FALSE, results='hide'}
+install.packages("RColorBrewer", repos="http://cran.rstudio.com/")
+install.packages("matrixStats", repos="http://cran.rstudio.com/")
+install.packages("RCurl", repos="http://cran.rstudio.com/")
+install.packages("devtools", repos="http://cran.rstudio.com/")
+```
+
+Now that the packages have been installed, load them into memory.
+
+```{r message=FALSE, warning=FALSE}
+library(RColorBrewer)
+library(matrixStats)
+library(Biobase)
+library(devtools)
+library(DESeq2)
+library(RCurl)
+```
+
+## Analysis of gene-expression microarray data
+
+For the initial analysis, you will analyze data that contains multiple biological replicates that have been profiled using microarrays. For each replicate, specific RNA transcripts have been artificially expressed ("spiked") in the cells. This enables you to see how these spiked transcripts are expressed compared to background noise. For this exercise, you will evaluate the consistency of the microarray data for these biological replicates.
+
+Execute the following code to download the data. Make sure to read through the code to understand what it does.
+
+```{r message=FALSE, warning=FALSE}
+# The following code retrieves the data from a GitHub repository (https://github.com/genomicsclass/SpikeInEDA).
+install_github("genomicsclass/SpikeInEDA")
+
+# This code will load a matrix object called "int" into memory.
+# This matrix contains the microarray expression values. Each column is a biological replicate. Each row is a gene.
+library(SpikeInEDA)
+data(SpikeInEDA)
+
+# We will focus on the first four columns of the matrix.
+# Square brackets allow us to choose a subset of rows or columns.
+# 1:4 means 1 through 4
+# Because no value was specified for rows (before the comma), all rows will be returned.
+spikeData <- int[,1:4] 
+```
+
+Write code that displays the first few rows of the ```spikeData``` object, which is a ```matrix```. Each column represents values for a single biological replicate. Each row represents values for a given gene.
+
+```{r}
+head(spikeData)
+```
+
+It's always a good idea to visualize your data at the beginning of an analysis. Create a histogram that shows the shape of the values from the first replicate (column).
+
+```{r}
+hist(spikeData[,1], main = "First Replicate Histogram", xlab = "First Replicate Expression Levels")
+```
+
+It is a bit difficult to see the data because there are a few outliers (extreme values). One way to make it easier to visualize the data is to log-transform it. Frequently, researchers use a base-2 log transformation because it relatively easy to mentally convert these values to the original values. For example, 6 on the log2 scale converts to 64 (2^6). Create a histogram that shows the shape of the values from the first replicate (column) after applying the ```log2``` function to the expression values for the first replicate.
+
+```{r}
+hist(log2(spikeData[,1]), main = "Log2 Transformed First Replicate Histogram", xlab = "First Replicate Expression Levels")
+```
+
+Look at the far-left side of the two histograms. What does the log2 plot tell you that the raw data plot doesn't?
+
+#### On the raw data plot, only the first sample has the highest frequency value, but on the log2 transformed plot the very first sample is extremely small, and the second sample is extremely large. This suggests to me that there are possibly two outliers, and it is easier to see both of them on the log-transformed plot.
+
+Now use a density plot to visualize the log2-transformed data for all four replicates. A density plot is similar to a histogram, except that the values are plotted as lines rather than than using boxes. Each line represents the shape of the values for a given replicate.
+
+```{r}
+# Plot values for the first replicate
+plot(density(log2(spikeData[,1])), main="Density plot of biological replicates", xlab="Expression levels")
+
+# Plot values for the remaining replicates on the same figure
+lines(density(log2(spikeData[,2])))
+lines(density(log2(spikeData[,3])))
+lines(density(log2(spikeData[,4])), col="red")
+```
+
+Notice that one of the replicates shows a considerably different pattern (highlighted in red). Do you think it is different enough to be concerned?
+
+#### It seems to me that this pattern is different enough to be concerned. The pattern for the fourth replicate peaks at 0.6 compared to a little over 0.8 for the other three replicates. That replicate either contains some interesting gene expression information , or there was some error when recording the data.
+
+Perhaps a better way to evalute the data is to use an [MA-plot](http://en.wikipedia.org/wiki/MA_plot). These plots can be used to compare gene-expression levels between two samples or between two groups of samples. The following code creates an MA-plot that compares the first two biological replicates in ```spikeData```. First a plotting function is created; the code then invokes that function for the first two biological replicates.
+
+```{r}
+maplot <- function(x, y, main)
+{
+  plot((x + y) / 2, y - x, main=main, xlab="A (mean average)", ylab="M (log ratios)", ylim=c(-3, 3))
+}
+
+maplot(log2(spikeData[, 1]), log2(int[, 2]), main="1 vs 2")
+```
+
+Genes that are expressed at relatively low levels are shown toward the left of the x-axis, whereas highly expressed genes are shown toward the right of the x-axis. The y-axis indicates the ratio (on a log scale) between the data values for the two biological replicates. In a perfect world, we would expect that the two biological replicates would be perfectly correlated with each other (log-ratio = 0). With these replicates, we see that the log-ratios are overall centered around 0. This indicates that the two replicates are reasonably well correlated with each other. However, in many cases, the log-ratio values are far from 0, suggesting that gene-expression levels for one replicate are very different from the other replicate. This is to be expected, to some extent, due to natural biological and technological variation.
+
+Use the function above to create an MA-plot that compares the first replicate against the fourth replicate.
+
+```{r}
+maplot(log2(spikeData[, 1]), log2(spikeData[, 4]), main="1 vs 4")
+```
+
+You should see that the data are shaped quite differently compared to the previous graph. There is almost a U-shape to the data, and the log-ratios are mostly not centered around zero. This indicates that there is some type of inconsistency in the data. Usually this happens when something has gone wrong with the way the microarray was handled.
+
+To get an idea for what might have caused this bias, we can create plots that mimic what you would see if you looked at the actual microarrays under a microscope. The following code creates these plots for the first and fourth replicates.
+
+```{r}
+plotChip <- function(spikeData, i, main)
+{
+  # Subtract the median values across all the samples from the expression values for this sample.
+  # This helps to normalize the data.
+  r <- log2(spikeData[,i]) - rowMedians(log2(spikeData))
+  
+  # If there are extremely high or low values, set these values to 1 or -1 so that outliers don't overtake the coloring
+  MAX <- 1
+  r[r > MAX] <- MAX
+  r[r < -MAX] <- -MAX
+
+  # Create a matrix object that mimics the layout of the microarray
+  mat <- matrix(NA, max(locations[, 1]), max(locations[, 2] + 1)/2)
+
+  # For each position on the matrix, specify the normalized value
+  for (j in 1:nrow(locations)) {
+    mat[locations[j, 1], (locations[j, 2] + 1)/2] <- r[j]
+  }
+
+  # Plot the matrix
+  image(mat, col = brewer.pal(11, "RdBu")[11:1], main=main)
+}
+
+# Make it so we can plot two figures side by side
+par(mfrow=c(1,2))
+
+# Invoke the plotting function for the two replicates
+plotChip(spikeData, 1, main="Replicate 1")
+plotChip(spikeData, 4, main="Replicate 4")
+```
+
+Red values represent relatively high values. Blue values represent relatively low values. White values are in between. What do you infer about the quality of the microarray data for these two samples and why?
+
+#### It is possible that someone has not been following the proper protocol for handling mircoarray chips, which led to screwing up the fourth replicate sample.
+
+## Analysis of RNA-Seq data
+
+For this section, we will evaluate gene-expression data from mice. Bottomly, et al. used the RNA-Sequencing technology to profile the striatum (part of the brain) for two strains of mouse (see http://www.ncbi.nlm.nih.gov/pubmed/21455293). The following code downloads the data set, which was previously aligned to the mouse reference genome using the [Bowtie](http://bowtie-bio.sourceforge.net/index.shtml) software tool.
+
+```{r}
+# Before downloading, check to make sure it wasn't previously downloaded.
+if (!file.exists("bottomly_eset.RData"))
+    download.file("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bottomly_eset.RData", "bottomly_eset.RData")
+
+# Load the data into memory in R
+load("bottomly_eset.RData")
+```
+
+The above code creates an R object called ```bottomly.eset```. We can extract the gene-expression values using the ```exprs``` function. These values are stored as a ```matrix``` object.
+
+```{r}
+bottomlyExprData <- exprs(bottomly.eset)
+```
+
+We can also extract phenotypic and experimental data for the mice models using the ```pData``` function.
+
+```{r}
+pData(bottomly.eset)
+```
+
+Plot a histogram of the gene-expression data (```bottomlyExprData```) for the first mouse sample (with **no** log-2 transformation).
+
+```{r}
+hist(bottomlyExprData[,1], main = "Gene expression data for the first mouse", xlab = "Expression Levels")
+```
+
+Note that there are many 0 values in the RNA-Seq data.
+
+Now log2-transform the data and plot a histogram. However, you will get an invalid result if you try to log2-transform 0 values. Therefore, you will need to add 1 to the expression values before applying the log2-transformation.
+
+```{r}
+replacedBED <- bottomlyExprData + 1
+hist(log2(replacedBED[,1]), main = "Log2 transformed gene expression data", xlab = "Expression Levels")
+```
+
+What do you notice that is different about the shape of the RNA-Seq data compared to the shape of the microarray data shown above?
+
+#### The first sample on the log2 transformed scale is an exremely high outlier, which is different from what we see in the microarray data histogram. Also, all of the samples in the microarray data show gradual decrese in expression levels, and in the RNA-Seq plot we see the samples that are not outliers form a normal distribution type of plot.
+
+We can also evaluate RNA-Seq data using MA-plots. Create an MA-plot that compares the first two mouse strains against each other. Make sure to log2-transform the data first (and add 1 to each value).
+
+```{r}
+maplot(log2(replacedBED[,1]), log2(replacedBED[,2]), main="1 vs 2")
+```
+
+In this case, you would expect the values to center around 1, rather than 0, because you added 1 to the values. Based on the above plots, what do you conclude about the quality of these two samples and why?
+
+#### As expected, the samples are centered around 1 rather than 0 because we replaced all of the 0's with 1's. However, the samples have a lot of variance, which suggests that there is a lot of noise in it.
+
+## Identifying differentially expressed genes
+
+In this final section, you will search for genes that are expressed at significantly different levels between the two mouse strains using the [DESeq2 package](http://www.bioconductor.org/packages/release/bioc/html/DESeq2.html). This package uses statistical methods that are designed specifically for RNA-Seq data.
+
+```{r}
+# First we must create a simple data frame that indicates the strain for each mouse
+colData <- data.frame(condition=pData(bottomly.eset)$strain)
+
+# Now we convert the expression data to an object type that is compatible with the DESeq2 package
+deseqData = DESeqDataSetFromMatrix(countData = bottomlyExprData, colData=colData, design=formula(~ condition))
+
+# Perform the calculations
+diffExpr = DESeq(deseqData)
+
+# Retrieve the results
+diffExprResults = results(diffExpr)
+
+# Remove "NA" values that arise when all samples have zero expression levels for a given gene
+diffExprResults = diffExprResults[which(!is.na(diffExprResults$padj)),]
+
+# Sort the results by the adjusted p-value
+diffExprResults = diffExprResults[order(diffExprResults$padj),]
+
+# Display the results for the first few rows and columns
+head(diffExprResults[,c("baseMean", "log2FoldChange", "pvalue", "padj")])
+```
+
+You will see results for the first few genes (the genes expressed most differently across the strains). To make it easier to interpret the results, I've excluded some of the columns. The first column indicates the [Ensembl](http://ensembl.org) gene ID for the genes that were tested. The ```baseMean``` values indicate the average gene-expression value for the first group (DBA/2J mouse strain). The ```log2FoldChange``` values indicate the relative expression between the two mouse strains. The ```pvalue``` values indicate whether the gene-expression differences between the strains were significantly different. The ```padj``` values are "adjusted" p-values. We will discuss these results more in the next lecture.
+
+## Submission
+
+After completing the steps requested above, knit this document and submit the resulting **HTML file** (not the Markdown file) via Learning Suite.

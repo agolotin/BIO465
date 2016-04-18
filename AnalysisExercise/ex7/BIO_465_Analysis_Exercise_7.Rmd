@@ -1,0 +1,148 @@
+---
+title: "BIO 465 Analysis Exercise 7"
+output: html_document
+author: Artem Golotin
+date: February 26, 2016
+---
+
+## Introduction
+
+The purpose of this assignment is to give you hands-on experience with Principal Component Analysis (PCA). You will be asked to apply this method, create plots, and interpret the results. In this week's lecture, I demonstrated the PCA method on the Iris data set. You can find the code that I used [here](https://www.dropbox.com/s/s925mdpi4ypkvc9/BIO_465_Statistics2_Lecture.html?dl=0).
+
+This exercise uses data from the [1000 Genomes project](http://www.1000genomes.org). For that project, DNA was profiled for individuals from various geographical locations around the world. I have downloaded that data (VCF files) and annotated the variants using the [Variant Effect Predictor](http://www.ensembl.org/info/docs/tools/vep/index.html) tool. These annotations indicate the predicted severity of each DNA variant. For example, it indicates whether a variant has a low or high likelihood of affecting the function of the protein(s) associated with that DNA variant.
+
+For the purposes of this exercise, I have filtered the data so that it only includes DNA variants that are most likely to affect protein function. I have also simplified the data so that it only includes variants from chromosomes 22 and X.
+
+If you are interested, you can find the code and scripts that I used to download, annotate, and filter the 1000 Genomes data [here](https://www.dropbox.com/s/9ouywyeulr5o83f/BIO_465_Analysis_Exercise_7_Prep.Rmd?dl=0).
+
+## Assignment
+
+Please complete the following steps:
+
+1. Download the data files to your local computer:
+
+    * SampleInfo.txt (https://www.dropbox.com/s/1m2sgk8cbl7yeqq/SampleInfo.txt?dl=0). This file contains "meta" information about each 1000 Genomes Project participant. Each row contains data for a specific person. The SampleID column is a unique identifier for each participant. In some cases, the 1000 Genomes Project obtained data for multiple individuals per family. In these cases, all individuals from the same family are grouped together using a FamilyID value; otherwise, the FamilyID value is the same as the SampleID value. The Population column indicates the geographical population from which each participant came. You can learn more about these populations [here](http://www.1000genomes.org/category/frequently-asked-questions/population).
+    * chr22.HIGH.variants.txt (https://www.dropbox.com/s/5ur8jo1lxhf2vlm/chr22.HIGH.variants.txt?dl=0). This file contains genotype values for chromosome 22. These values are represented as 0, 1, or 2, depending on how many minor alleles a given person had. A person who was homozygous for the common allele would have a value of 0; a person who was heterozygous would have a value of 1, and a homozygous rare genotype would be represented as 2. (See https://en.wikipedia.org/wiki/Zygosity.) Each row in this file contains all the genotype values for a given participant. The rows in this file should be in the same order as the rows in SampleInfo.txt.
+    * chrX.HIGH.variants.txt (https://www.dropbox.com/s/ncwo4lj60yx5n2i/chrX.HIGH.variants.txt?dl=0) This file contains genotype values for chromosome X. This file is structured the same way as chr22.HIGH.variants.txt.
+
+Please note that you are working with a more updated version of the data than was used for the original 1000 Genomes paper. Our version contains data for 2504 participants rather than 1092.
+
+1. Load the R libraries (```readr```, ```ggplot2```, and ```dplyr```) and set the working directory as needed.
+
+```{r message=FALSE, indent="    "}
+library("readr")
+library("ggplot2")
+library("dplyr")
+```
+
+2. Read the data files into objects in R using the ```read_tsv``` function in the ```readr``` package. Call these objects ```sampleData```, ```chr22Data```, ```chrXData```, respectively.
+
+```{r indent="    "}
+setwd("/Users/agolotin/Desktop/BIO465/AnalysisExercise/ex7")
+sampleData <- read_tsv("SampleInfo.txt")
+chr22Data <- read_tsv("chr22.HIGH.variants.txt")
+chrXData <- read_tsv("chrX.HIGH.variants.txt")
+```
+
+3. Filter ```sampleData``` so that it only includes patients from the CEU (Utah), YRI (Yoruba, Nigeria), GWD (The Gambia, Africa), ASW (African ancestry in American Southwest), GBR (Great Britain), TSI (Tuscany, Italy), CHS (Southern Han Chinese), and JPT (Tokyo, Japan) populations. Store the results in an object called ```sampleData2``` (for lack of a better name). I'm going to help you with this code (see below). Notice the use of the ```%in%``` operator. This often comes in handy when coding in R.
+
+```{r indent="    "}
+sampleData2 <- filter(sampleData, Population %in% c("CEU", "YRI", "GWD", "ASW", "GBR", "TSI", "CHS", "JPT"))
+```
+
+4. Filter ```chr22Data``` so that it only contains data for the samples in ```sampleData2```. Store this in a variable called ```chr22Data2```. I'm going to give this code to you, too (see below).
+
+```{r indent="    "}
+chr22Data2 <- filter(chr22Data, SampleID %in% sampleData2$SampleID)
+```
+
+5. Exclude the first column (SampleID) from ```chr22Data2``` and convert it to a matrix object. (While I'm at it, I'll help you with this one, too. Notice that when selecting columns in R, a negative sign indicates that you want to exclude it and to keep all the others.)
+
+```{r indent="    "}
+chr22Data2 <- as.matrix(select(chr22Data2, -SampleID))
+```
+
+6. Apply the ```prcomp``` function to ```chr22Data2``` to calculate the principal components for that object. Store the result in an object called ```chr22PC```. Because the genotypes are discrete values, you do not need to scale the data.
+
+```{r indent="    "}
+chr22PC <- prcomp(chr22Data2)
+```
+
+7. Create a graph that plots the 1st principal component on the x-axis and the 2nd principal component on the y-axis. You can obtain these values from the ```$x``` variable in ```chr22PC```. To use ```ggplot2```, you will need to first convert ```chr22PC``` to a data frame object because ```ggplot2``` only accepts data frames. Color the points according to the population values specified for each patient in ```sampleData2```. Use appropriate axis labels and change the legend title to something descriptive. (Your graph should look something like [this](https://www.dropbox.com/s/s3vpevz7n1p02u8/Expected_Results_1000G_1.pdf?dl=0).)
+
+```{r indent="    "}
+chr22PCDF <- as.data.frame(chr22PC$x)
+ggplot(chr22PCDF, aes(x=PC1, y=PC2)) + 
+  geom_point(aes(color=sampleData2$Population)) +
+  labs(col="1000G Project\nPopulation") + 
+  theme(legend.position="bottom", legend.background=element_rect(colour="black", fill="gray93"), panel.background=element_rect(fill="gray97"))
+```
+
+8. After observing this graph, what do you conclude about genetic similarities and dissimilarities among these populations?
+
+> In the graph we can observe three distinct clusters. This suggests to me that each cluster contributes differently to variance in data. However, populations within a single cluster most likely contribute to variance equally. For example, CEU, TSI, and GBR all contribute equally to variance in data, but in a different way compared to CHS, and JPT in another cluster, and ASW, GWD, and YRI in the third cluster.
+
+9. Calculate the percent variance explained by the principal components. (See the lecture notes for an example of this. You don't need to plot these values unless you want to.)
+
+```{r indent="    "}
+percentVariance <- 100 * chr22PC$sdev^2 / sum(chr22PC$sdev^2)
+
+# PVDF: Percent Variance Data Frame. I will only plot the first 8 principle components
+PVDF <- data.frame(PC=1:8, varanceExplnd=percentVariance[1:8])
+ggplot(PVDF, aes(PC, varanceExplnd, fill=PC)) + 
+  geom_bar(stat="identity") + 
+  geom_text(aes(y=PVDF$varanceExplnd+0.3, label=format(PVDF$varanceExplnd, digits=7))) +
+  labs(x="Principal Component", y="% Variance explained") +
+  scale_x_continuous(breaks=1:8) +
+  theme(legend.position="none", panel.background=element_blank())
+```
+
+10. How much variance is explained by each of the first two principal components?
+
+> As it can be seen from the graph, the first principal component explains 9.175921% of variance in data, and the second principle component explains 8.479704% of variance in data.
+
+11. What do you conclude about the first two principal components, based on your answer for #10?
+
+> The first two principal components do not explain enough variance in data. In fact, they only explain `r (percentVariance[1] + percentVariance[2]) / sum(percentVariance) * 100`% of variance. Thus, we will have to use more principle components when transforming our data if we want to have a better representation of our dataset in lower dimensions.
+
+12. Repeat steps #4-7; however, this time use data from chromosome X. Also this time color the points by the values for Gender rather than Population. (Your graph should look something like [this](https://www.dropbox.com/s/crv78co4xcm7cdd/Expected_Results_1000G_2.pdf?dl=0).)
+
+```{r indent="    "}
+# Steps 4 - 6
+chrXData2 <- filter(chrXData, SampleID %in% sampleData2$SampleID)
+chrXData2 <- as.matrix(select(chrXData2, -SampleID))
+chrXPC <- prcomp(chrXData2)
+# Plotting 
+chrXPCDF <- as.data.frame(chrXPC$x)
+ggplot(chrXPCDF, aes(x=PC1, y=PC2)) + 
+  geom_point(aes(color=sampleData2$Gender)) +
+  labs(col="1000G Project\nGender") + 
+  theme(legend.position="bottom", legend.background=element_rect(colour="black", fill="gray93"), panel.background=element_rect(fill="gray97"))
+```
+
+13. After observing this graph, what do you interpret about the genetic similarity or dissimilarity of individuals in these populations who are either male or female, for these variants on chromosome X?
+
+> It seems like there are two clusters formed by data. First of all, each cluster seems to have about the same number of data points from both males and females, which suggests to me that gender equally contributes to varaince in data. However, some data points seem to contribute to variance in data in one way, and others - in another way. That is why I think we see two clusters.
+
+14. [Optional] Use principal component analysis to evaluate how similar individuals from the same family are genetically. It might be a little tricky to plot this for the whole data set, so you might limit your analysis to 5-10 families from the CEU population.
+
+```{r indent="    "}
+# Get only CEU families
+familiesCEUData <- filter(sampleData, Population == "CEU") #%>% filter(FamilyID %in% unique(FamilyID)[1:10]) I wanted to do only 10 families at first...
+# Get the genetic data on all of the families for both chromosomes
+chrXCEU <- as.matrix(select(filter(chrXData, SampleID %in% familiesCEUData$SampleID), -SampleID))
+chr22CEU <- as.matrix(select(filter(chr22Data, SampleID %in% familiesCEUData$SampleID), -SampleID))
+# Calculate PCA
+DFchrXCEU <- as.data.frame(prcomp(chrXCEU)$x)
+DFchr22CEU <- as.data.frame(prcomp(chr22CEU)$x)
+# Plot the data for both chromosomes
+ggplot(DFchrXCEU, aes(PC1, PC2)) + geom_point(aes(color=familiesCEUData$FamilyID)) +
+  geom_point(data=DFchr22CEU, aes(color=familiesCEUData$FamilyID)) +
+  geom_density2d(alpha=0.5) +
+  guides(col = guide_legend(ncol=12, title="Unique Family Identifier", title.position="top")) + 
+  theme(legend.position="bottom", legend.background=element_rect(colour="black", fill="gray93"), panel.background=element_rect(fill="gray97"))
+```
+
+## Submission
+
+After completing the steps requested above, knit this document and submit the resulting **HTML file** (not the Markdown file) via Learning Suite.

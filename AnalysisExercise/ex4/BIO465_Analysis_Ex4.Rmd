@@ -1,0 +1,89 @@
+---
+title: "BIO465 Analysis Exercise 4"
+author: "Artem Golotin"
+date: "February 5, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Initial setup
+
+For this assignment, five new packages had to be installed and loaded into R.
+
+```{r message=FALSE}
+library("readr")
+library("reshape2")
+library("dplyr")
+library("stringr")
+library("magrittr")
+```
+
+Additionally, three new data files, __swabs.tsv__, __counts.tsv__, and __taxa.tsv__ were downloaded from the Internet. In order to complete the exercise, the working directory has to be properly set. Additionally, all of the files have to be loaded unto their respective variables.
+
+```{r}
+setwd("/Users/agolotin/Desktop/BIO465/AnalysisExercise/ex4")
+
+taxa <- read_tsv("taxa.tsv")
+swabs <- read_tsv("swabs.tsv")
+counts <- read_tsv("counts.tsv")
+```
+
+
+#### Part A
+1. For the ```swabs``` object, select all location types from the ```type``` column and identify the distinct (unique) values.
+```{r indent="    "}
+unique(select(swabs, which(colnames(swabs) == "type")))
+```
+2. Filter the full ```swabs``` data set so that it only includes samples of type “wall”. Store these results in a new data object called ```swabs2```.
+```{r indent="    "}
+swabs2 <- filter(swabs, type == "wall")
+```
+3. Sort ```swabs2``` by the x and y coordinates (```xcor``` and ```ycor``` columns), in that order. Store these results in a new data object called ```swabs3```.
+```{r indent="    "}
+swabs3 <- arrange(swabs2, xcor, ycor)
+```
+4. Create a new data object called ```swabs4``` that contains only the ```swab.id```, ```location```, and ```location2``` columns from ```swabs3```
+```{r indent="    "}
+swabs4 <- select(swabs3, which(colnames(swabs3)==c("swab.id", "location", "location2")))
+```
+5. Add a new column that is a string concatenation of the ```location``` and ```location2``` columns. 
+```{r indent="    "}
+mutate(swabs4, location_location2 = str_c(swabs4$location, "_", swabs4$location2))
+```
+6. Write code that combines steps 2-5 into a __single command__ using ```magrittr``` pipes.
+```{r indent="    "}
+filter(swabs, type == "wall") %>% arrange(xcor, ycor) %>% select(which(colnames(swabs)==c("swab.id", "location", "location2"))) %>% mutate(location_location2 = str_c(swabs4$location, "_", swabs4$location2))
+```
+
+#### Part B
+1. For the original ```swabs``` data, use the select function (```dplyr``` package) to create a new data object called ```swabsOfInterest``` that contains only one column: ```swab.id```.
+```{r indent="    "}
+swabsOfInterest <- select(swabs, which(colnames(swabs) == "swab.id"))
+```
+2. Use the ```inner_join``` function (```dplyr``` package) to merge ```swabsOfInterest``` with the ```counts``` data object. Store the result in an object called ```swabsOfInterestCounts```.
+```{r indent="    "}
+swabsOfInterestCounts <- inner_join(swabsOfInterest, counts, by = "swab.id")
+```
+3. Although debatable, this object is not “tidy.” Use the ```melt``` function (```reshape2``` package) to transform all the taxa columns into two columns that represent the OTU and the counts per OTU. Store the result in an object called ```meltedCounts```.
+```{r indent="    "}
+meltedCounts <- melt(swabsOfInterestCounts, "swab.id")
+```
+4. Using ```meltedCounts```, calculate the number of counts per OTU. Use the ```group_by``` and summarize functions (```dplyr``` package) for this. Store the result in an object called ```summarizedCounts```.
+```{r indent="    "}
+summarizedCounts <- meltedCounts %>% group_by(variable) %>% summarise(count = sum(value))
+```
+5. Use the ```inner_join``` function (```dplyr``` package) to merge ```summarizedCounts``` with the ```taxa``` object. Assign the result to an object called ```summary```.
+```{r warning=FALSE, indent="    "}
+summary <- inner_join(summarizedCounts, taxa, by = c("variable"="taxa.id"))
+```
+6. Sort the ```summary``` object by the ```count``` column in descending order. Assign the result to an object called ```sortedSummary```.
+```{r indent="    "}
+sortedSummary <- arrange(summary, desc(count))
+```
+7. Apply the ```head``` function to the ```sortedSummary``` object to display the kingdom, phylum, and class of the OTU that had the _highest_ count.
+```{r indent="    "}
+head(sortedSummary, n = 1L)
+```

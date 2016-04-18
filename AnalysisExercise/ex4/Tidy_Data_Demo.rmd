@@ -1,0 +1,182 @@
+---
+title: "Tidy Data Demo"
+author: "Stephen Piccolo"
+output: html_document
+---
+
+### Load libraries & set working directory
+
+```{r}
+library(reshape2)
+library(stringr)
+library(readr)
+library(dplyr)
+
+setwd("~/Dropbox/Teaching/BIO465")
+```
+
+### Load Pew religion data
+
+This data set shows the relationship between religion and income (surveyed by the Pew Research Center).
+
+```{r}
+rawPewData <- read_tsv("TidyData/pew2.txt")
+head(rawPewData, n=20)
+```
+
+### "Melt" the income columns into two columns
+
+```{r}
+tidyPewData <- melt(rawPewData, "religion") # reshape2 package
+head(tidyPewData, n=20)
+```
+
+### Load tuberculosis data
+
+This data set represents the number of cases of tuberculosis observed in a WHO study.
+
+```{r}
+rawTbData <- read_csv("TidyData/tb2.csv")
+head(rawTbData, n=20)
+```
+
+### "Melt" the sex/age variable and remove cases with missing values
+
+```{r}
+tb <- melt(rawTbData, id = c("country", "year"), na.rm = TRUE)
+head(tb, n=20)
+```
+
+### Split apart the sex and age values into their own columns
+
+```{r}
+# Extract sex from composite variable
+tb$sex <- str_sub(tb$variable, 1, 1)
+
+# Extract age from composite variable
+tb$age <- str_sub(tb$variable, 2)
+
+# Remove composite "variable" column
+tb$variable <- NULL
+
+head(tb, n=20)
+```
+
+### Reformat age values for readability
+
+```{r}
+ageOptions <- c("1524" = "15-24", "2534" = "25-34", "3544" = "35-44", "4554" = "45-54", "5564" = "55-64", "65" = "65+")
+tb$age <- ageOptions[tb$age]
+head(tb, n=20)
+```
+
+### Select columns
+
+##### (In this case, we are selecting all the columns but reordering them)
+
+```{r}
+selected <- select(tb, country, year, sex, age, value)
+head(selected, n=20)
+```
+
+### Sort by specific column values
+
+```{r}
+reordered <- arrange(selected, country, year, sex, age)
+head(reordered, n=20)
+```
+
+### Filter
+
+```{r}
+filtered <- filter(selected, country=="AD")
+head(filtered, n=20)
+```
+
+### Identify distinct values for a given column
+
+```{r}
+distinct(select(tb, country))
+```
+
+### Summarize a single column
+
+```{r}
+summarise(tb, average=mean(value))
+```
+
+### Count total per country
+
+```{r}
+gb <- group_by(tb, country)
+summarise(gb, count=n())
+```
+
+### Count total per country per age group
+
+```{r}
+gb <- group_by(tb, country, age)
+summarise(gb, count=n())
+```
+
+### Max per country per age group
+
+```{r}
+gb <- group_by(tb, country, age)
+summarise(gb, count=n(), max=max(value))
+```
+
+### Add a new column
+
+```{r}
+tb2 <- mutate(tb, valueSquared=value^2)
+head(tb2, n=20)
+```
+
+### Inner Join (simple)
+
+```{r}
+data1 <- data.frame(samples=paste("Sample", 1:10, sep=""), Gene1=rnorm(10), Gene2=rnorm(10))
+data2 <- data.frame(samples=paste("Sample", 1:10, sep=""), Gene3=rnorm(10), Gene4=rnorm(10))
+data3 <- inner_join(data1, data2, by="samples")
+
+print(data1)
+print(data2)
+print(data3)
+```
+
+### Inner Join (with non-overlapping samples)
+
+```{r}
+data1 <- data.frame(samples=paste("Sample", 1:10, sep=""), Gene1=rnorm(10), Gene2=rnorm(10))
+data2 <- data.frame(samples=paste("Sample", 6:15, sep=""), Gene3=rnorm(10), Gene4=rnorm(10))
+data3 <- inner_join(data1, data2, by="samples")
+
+print(data1)
+print(data2)
+print(data3)
+```
+
+### Left Join (with non-overlapping samples)
+
+```{r}
+data1 <- data.frame(samples=paste("Sample", 1:10, sep=""), Gene1=rnorm(10), Gene2=rnorm(10))
+data2 <- data.frame(samples=paste("Sample", 6:15, sep=""), Gene3=rnorm(10), Gene4=rnorm(10))
+data3 <- left_join(data1, data2, by="samples")
+
+print(data1)
+print(data2)
+print(data3)
+```
+
+### Full Join (with non-overlapping samples)
+
+```{r}
+data1 <- data.frame(samples=paste("Sample", 1:10, sep=""), Gene1=rnorm(10), Gene2=rnorm(10))
+data2 <- data.frame(samples=paste("Sample", 6:15, sep=""), Gene3=rnorm(10), Gene4=rnorm(10))
+data3 <- full_join(data1, data2, by="samples")
+
+print(data1)
+print(data2)
+print(data3)
+```

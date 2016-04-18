@@ -1,0 +1,270 @@
+---
+title: "BIO 465 Analysis Exercise 11"
+author: Artem Golotin
+date: March 25, 2016
+output: html_document
+---
+
+## Introduction
+
+The purpose of this assignment is to help you gain experience applying machine-learning classification algorithms. Your objective will be to apply 5 different classification algorithms to 2 types of data and to determine which algorithm provides the highest classification accuracy for each type of data.
+
+## Install R packages
+
+Please install the R packages that will be used for this exercise, as shown below. (You may want to comment these lines of code after you have installed the packages.)
+
+```{r message=FALSE, warning=FALSE, error=FALSE, cache.comments=FALSE, results='hide'}
+install.packages("randomForest", repos="http://cran.us.r-project.org")
+install.packages("kknn", repos="http://cran.us.r-project.org")
+install.packages("gbm", repos="http://cran.us.r-project.org")
+```
+
+## Load R libraries
+
+Load the R libraries that will be used for this exerise. As with the clustering exercise, you will use the ```mlr``` package. You can find documentation on the ```mlr``` package [here](https://mlr-org.github.io/mlr-tutorial/release/html).
+
+```{r message=FALSE, warning=FALSE, error=FALSE, cache.comments=FALSE, results='hide'}
+library(mlr)
+library(dplyr)
+library(readr)
+```
+
+## Demo using iris data
+
+The following code demonstrates how to do a classification analysis using the iris data that comes with R. Please read through the code and pay attention to the comments, which explain each step.
+
+```{r}
+# For this demonstration, we will use a simplified version of the iris data.
+# We will exclude the iris setosa samples.
+# To do that, we first convert the Species values from a factor object to a character object.
+# Then we filter iris and created a new variable called iris2.
+iris$Species <- as.character(iris$Species)
+iris2 <- filter(iris, Species %in% c("virginica", "versicolor"))
+
+# Create a task object that indicates which data will be used.
+# It is also necessary to indicate which column contains the class (target) values.
+task <- makeClassifTask(data = iris2, target = "Species")
+
+# Create a learner object that indicates which classification algorithm we want to use.
+# Also indicate that we want the algorithm to generate probabilistic predictions.
+# In this example, we are using the Support Vector Machines (SVM) algorithm.
+learner <- makeLearner("classif.svm", predict.type = "prob")
+
+# Specify the resampling strategy.
+# In this case, we indicate that we want to use cross-validation with 10 folds.
+resampleDesc = makeResampleDesc("CV", iters = 10)
+
+# Because cross validation relies on random assignments, set a random seed to
+#   ensure that we will get consistent results across multiple executions.
+set.seed(1)
+
+# Make the predictions (combine the data with the algorithm and resampling strategy).
+# By specifying "show.info=FALSE", we are telling mlr to only display important information
+#   at the console.
+results <- resample(learner, task, resampleDesc, show.info=FALSE)
+```
+
+Now that we have made predictions, we can see how accurately the SVM classification algorithm was able to predict the iris species for each of the samples. Using the code below, we can see a summary of the predictions that were made. It indicates the resampling strategy that was used and other parameters that were specified (either explicitly or as default values). It also shows predictions for the first few samples.
+
+```{r}
+results$pred
+```
+
+To extract the predictions for all samples, we can use the code shown below. For each sample, the following information is specified:
+
+* A unique identifier (```id``` column)
+* The ```true``` class (versicolor or virginica)
+* The predicted class (```response``` column)
+* The predicted probability for each class (```prob.virginica``` and ```prob.versicolor``` columns)
+* The cross-validation fold to which each sample was assigned as a test sample (```iter``` column).
+
+```{r}
+predictions <- results$pred$data
+head(predictions)
+```
+
+Based on these predictions, we can obtain performance metrics that indicate the accuracy of the predictions. For example, if we wanted to know the classification accuracy, we could use the code shown below. (Note: We have to prefix the "acc" measure with "mlr::" because an ```acc``` function has been defined in multiple different R libraries. With this prefix, we tell R to use the ```acc``` function from the mlr package.)
+
+```{r}
+accuracy <- performance(results$pred, measures = mlr::acc)
+accuracy
+```
+
+If we wanted to obtain multiple performance metrics, we could use code such as the following:
+
+```{r}
+metrics <- performance(results$pred, measures = list(mlr::acc, auc, tpr, tnr))
+metrics
+```
+
+From this object, we could use code such as the following to obtain the AUC result that was returned:
+
+```{r}
+metrics["auc"]
+```
+
+## Idiopathic pulmonary fibrosis data
+
+Idiopathic pulmonary fibrosis (IPF) is a disease that causes lung tissue to form scar tissue. This scarring prevents the person from breathing properly and eventually may cause lung failure. In most cases, physicians cannot find a cause for this disease, and there is currently [no cure](http://www.nhlbi.nih.gov/health/health-topics/topics/ipf). Accordingly, there is an urgent need for researchers to understand more about IPF.
+
+Researchers at the University of Illinois at Chicago performed a study to examine 115 people who had either been diagnosed with IPF or who were healthy controls. They collected each person's age, ethnicity, and sex. And they used gene-expression microarrays to profile blood cells from each person. They sought to identify patterns that were different between these two groups (IPF vs. healthy) in hopes of understanding more about what causes the disease. In addition, they hoped to develop a way to accurately predict who will develop IPF so they could intervene at an early stage of the disease.
+
+These researchers posted the raw data [here](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE38958). A simplified version of the data has been posted at the links listed below. To keep the analysis less computationally demanding, only 1000 genes have been included.
+
+* [GSE38958_Clinical.txt](https://www.dropbox.com/s/a52rj3sryow1tji/GSE38958_Clinical.txt?dl=0)
+* [GSE38958_GeneExpression.txt](https://www.dropbox.com/s/6i9qb4namg9s4en/GSE38958_GeneExpression.txt?dl=0)
+
+Please download these files to your local machine. Read both of the files into objects in R using code such as that shown below. This code also converts the Ethnicity and Sex columns of the clinical data to factors. This way the classification algorithms know that these columns contain [discrete data](http://stats.stackexchange.com/questions/206/what-is-the-difference-between-discrete-data-and-continuous-data) rather than character strings.
+
+```{r}
+setwd("/Users/agolotin/Desktop/BIO465/AnalysisExercise/ex11")
+clinicalData <- as.data.frame(read_tsv("GSE38958_Clinical.txt"))
+exprData <- as.data.frame(read_tsv("GSE38958_GeneExpression.txt"))
+
+clinicalData$Ethnicity <- as.factor(clinicalData$Ethnicity)
+clinicalData$Sex <- as.factor(clinicalData$Sex)
+```
+
+Examine ```clinicalData``` and ```exprData``` using the ```head``` function.
+
+```{r}
+head(clinicalData)
+head(exprData)
+```
+
+The final column in each of these data files contains a Class value ("Idiopathic pulmonary fibrosis (IPF)" or "Healthy control") for each sample. These are the target values that we want to be able to predict.
+
+## Perform analysis
+
+Complete the following steps to perform a simple benchmark analysis to evaluate how well you can predict the Class values using either clinical data or gene-expression data.
+
+1. Create a function that performs a classification analysis using **5-fold** cross validation (see example code above). This function should accept four parameters:
+
+    a. A data frame (either the clinical data or gene-expression data).
+    b. The name of the column in the data frame that contains the class variable (target).
+    c. The name of a classification algorithm implemented in the mlr package.
+    d. The performance metrics (for example, "acc" and "auc") that you want to use to evaluate the algorithm.
+    
+    Within the function, specify a random seed of 1 (before resampling) and return the performance results.
+
+```{r indent="    "}
+crossValAnalysis <- function(data = inData, 
+                             targetColName = colName, 
+                             learnerAlgorithm = algorithm, 
+                             metricsToMeasure = performMetrics) {
+  task <- mlr::makeClassifTask(data = data, target = targetColName)
+  learner <- mlr::makeLearner(learnerAlgorithm, predict.type = "prob")
+ 
+  resampleDesc <- mlr::makeResampleDesc("CV", iters = 5)
+  
+  
+  set.seed(1)
+  results <- mlr::resample(learner, task, resampleDesc, show.info=FALSE)
+
+  performanceResult <- mlr::performance(results$pred, measures = metricsToMeasure)
+  return (performanceResult)
+}
+```
+
+2. Apply the function you just created to the clinical data and gene-expression data (separately). Apply the following 5 classification algorithms ([more details here](https://mlr-org.github.io/mlr-tutorial/release/html/integrated_learners/index.html)):
+
+    * classif.svm (Support Vector Machines)
+    * classif.randomForest (Random Forest)
+    * classif.naiveBayes (Naive Bayes Classifier)
+    * classif.kknn (k-nearest neighbors)
+    * classif.gbm (Gradient Boosting Machine)
+
+```{r message=FALSE, warning=FALSE, error=FALSE, cache.comments=FALSE, results='hide', indent="    "}
+svmPerformanceClinical <- crossValAnalysis(data = clinicalData, targetColName = "Class", learnerAlgorithm = "classif.svm", metricsToMeasure = list(acc, auc))
+svmPerformanceExpr <- crossValAnalysis(data = exprData, targetColName = "Class", learnerAlgorithm = "classif.svm", metricsToMeasure = list(acc, auc))
+
+rfPerformanceClinical <- crossValAnalysis(data = clinicalData, targetColName = "Class", learnerAlgorithm = "classif.randomForest", metricsToMeasure = list(acc, auc))
+rfPerformanceExpr <- crossValAnalysis(data = exprData, targetColName = "Class", learnerAlgorithm = "classif.randomForest", metricsToMeasure = list(acc, auc))
+
+nbPerformanceClinical <- crossValAnalysis(data = clinicalData, targetColName = "Class", learnerAlgorithm = "classif.naiveBayes", metricsToMeasure = list(acc, auc))
+nbPerformanceExpr <- crossValAnalysis(data = exprData, targetColName = "Class", learnerAlgorithm = "classif.naiveBayes", metricsToMeasure = list(acc, auc))
+
+knnPerformanceClinical <- crossValAnalysis(data = clinicalData, targetColName = "Class", learnerAlgorithm = "classif.kknn", metricsToMeasure = list(acc, auc))
+knnPerformanceExpr <- crossValAnalysis(data = exprData, targetColName = "Class", learnerAlgorithm = "classif.kknn", metricsToMeasure = list(acc, auc))
+
+gbmPerformanceClinical <- crossValAnalysis(data = clinicalData, targetColName = "Class", learnerAlgorithm = "classif.gbm", metricsToMeasure = list(acc, auc))
+gbmPerformanceExpr <- crossValAnalysis(data = exprData, targetColName = "Class", learnerAlgorithm = "classif.gbm", metricsToMeasure = list(acc, auc))
+```
+    
+3. Use R code to parse your results and to indicate which algorithm resulted in the highest classification accuracy (```acc``` metric) for the clinical data.
+
+```{r indent="    "}
+getMaxAlgorithm <- function(svm, rf, nb, knn, gbm) {
+  max_val <- max(svm, rf, nb, knn, gbm)
+  if (svm == max_val) {
+    return (paste("Support Vector Machine: ", max_val))
+  }
+  if (rf == max_val) {
+    return (paste("Random Forest: ", max_val))
+  }
+  if (nb == max_val) {
+    return (paste("Naive Bayes: ", max_val))
+  }
+  if (knn == max_val) {
+    return (paste("k-Nearest Neighbors: ", max_val))
+  }
+  if (gbm == max_val) {
+    return (paste("Gradient Boosting Machine: ", max_val))
+  }
+}
+```
+
+```{r indent="    "}
+getMaxAlgorithm(svmPerformanceClinical['acc'], rfPerformanceClinical['acc'], nbPerformanceClinical['acc'], knnPerformanceClinical['acc'], gbmPerformanceClinical['acc'])
+```
+
+4. Use R code to parse your results and to indicate which algorithm resulted in the highest classification accuracy for the gene-expression data.
+
+```{r indent="    "}
+getMaxAlgorithm(svmPerformanceExpr['acc'], rfPerformanceExpr['acc'], nbPerformanceExpr['acc'], knnPerformanceExpr['acc'], gbmPerformanceExpr['acc'])
+```
+
+5. Use R code to parse your results and to indicate which algorithm resulted in the highest area under the ROC curve (```auc``` metric) for the clinical data.
+
+```{r indent="    "}
+getMaxAlgorithm(svmPerformanceClinical['auc'], rfPerformanceClinical['auc'], nbPerformanceClinical['auc'], knnPerformanceClinical['auc'], gbmPerformanceClinical['auc'])
+```
+
+6. Use R code to parse your results and to indicate which algorithm resulted in the highest area under the ROC curve for the gene-expression data.
+
+```{r indent="    "}
+getMaxAlgorithm(svmPerformanceExpr['auc'], rfPerformanceExpr['auc'], nbPerformanceExpr['auc'], knnPerformanceExpr['auc'], gbmPerformanceExpr['auc'])
+```
+
+7. Use R code to parse your results and to indicate the average accuracy across all five algorithms for the clinical data.
+
+```{r indent="    "}
+sum(svmPerformanceClinical['acc'], rfPerformanceClinical['acc'], nbPerformanceClinical['acc'], knnPerformanceClinical['acc'], gbmPerformanceClinical['acc']) / 5
+```
+
+8. Use R code to parse your results and to indicate the average AUC across all five algorithms for the clinical data.
+
+```{r indent="    "}
+sum(svmPerformanceClinical['auc'], rfPerformanceClinical['auc'], nbPerformanceClinical['auc'], knnPerformanceClinical['auc'], gbmPerformanceClinical['auc']) / 5
+```
+
+9. Use R code to parse your results and to indicate the average accuracy across all five algorithms for the gene-expression data.
+
+```{r indent="    "}
+sum(svmPerformanceExpr['acc'], rfPerformanceExpr['acc'], nbPerformanceExpr['acc'], knnPerformanceExpr['acc'], gbmPerformanceExpr['acc']) / 5
+```
+
+10. Use R code to parse your results and to indicate the average AUC across all five algorithms for the gene-expression data.
+
+```{r indent="    "}
+sum(svmPerformanceExpr['auc'], rfPerformanceExpr['auc'], nbPerformanceExpr['auc'], knnPerformanceExpr['auc'], gbmPerformanceExpr['auc']) / 5
+```
+
+11. What do you conclude based on these results?
+
+> It looks like Random Forest performed better than any other learner on the low-dimentional clinical data, while k-Nearest Neighbors performed better on high-dimentional expression data. It is a very interesting outcome, in my opinion, but can be easily explained. Random forest will pick up on the features that are most informative, and if there are more trees than features (which I guess there will be), then the algorithm will learn a fairly good model function of the dataset. kNN performed better on the high dimentional data because, as far as I remember it, in high dimensions there will be a lot less nearest neighbors. However, the neighbors that the algorithm actually does find for an instance that we are predicting will be pretty good at predicting the class of that instance.
+As for the average values, it seems like most of the algorithms perfomed a lot worse than best algorithm, since the average values seem a lot lower than the values produced by the best algorithm.
+
+## Submission
+
+After completing the steps requested above, knit this document and submit the resulting **HTML file** (not the Markdown file) via Learning Suite. You will be graded on whether you ... and whether you provided meaningful interpretations, when requested.

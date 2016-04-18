@@ -1,0 +1,142 @@
+---
+title: "BIO 465 Analysis Exercise 5"
+output: html_document
+author: Artem Golotin
+---
+
+## Introduction
+
+The purpose of this assignment is to give you practice creating graphics using the ```ggplot2``` package. For this exercise, you will use data from the paper by Coyle, et al. entitled, "Opposing mechanisms drive richness patterns of core and transient bird species..
+
+Please download the following data files for this analysis:
+
+* https://www.dropbox.com/s/pu9britofgvmh3c/Occupancy_Data.txt?dl=0
+* https://www.dropbox.com/s/zcgupsiguvl9ifn/Location_Data.txt?dl=0
+
+Below are descriptions of the data attributes contained in these data files.
+
+* Occupancy_Data.txt
+    - LocationID = An identifier that represents the geographic location where a bird species was observed.
+    - SpeciesID = An identifier that represents the species observed at that location.
+    - Occupancy = The frequency at which the species was observed at that location.
+* Location_Data.txt
+    - LocationID = This identifier corresponds with LocationID in the occupancy data.
+    - NumSpecies = Total number of species identified at that location.
+    - NumCoreSpecies = Number of core species identified at that location.
+    - NumTransientSpecies = Number of transient species identified at that location.
+    - PredominantSpeciesType = Whether more core or transient species were identified at that location.
+    - NDVI = Normalized Difference Vegetation Index at that location.
+    - Elevation
+    - Longitude
+    - Latitude
+
+## Set working directory
+
+1. Set the working directory to the location that contains the data files.
+
+```{r}
+setwd("/Users/agolotin/Desktop/BIO465/AnalysisExercise/ex5")
+```
+
+## Install R libraries
+
+The following code will install the R packages that are necessary to complete this assignment.
+
+```{r message=FALSE, warning=FALSE}
+install.packages("ggplot2", repos="http://cran.us.r-project.org")
+install.packages("readr", repos="http://cran.us.r-project.org")
+install.packages("maps", repos="http://cran.us.r-project.org")
+install.packages("mapproj", repos="http://cran.us.r-project.org")
+```
+
+## Load R libraries
+
+2. Load each of these libraries into memory.
+
+```{r message=FALSE}
+library("ggplot2")
+library("readr")
+library("maps")
+library("mapproj")
+```
+
+## Read data from files
+
+3. Now read the data files into memory. These are tab-separated files. The ```read_tsv``` function within the ```readr``` package is designed to import tab-separated files. Write a command that uses this function to import the data into variables called ```occupancyData``` and ```locationData```, respectively.
+
+```{r}
+occupancyData <- read_tsv("Occupancy_Data.txt")
+locationData <- read_tsv("Location_Data.txt")
+```
+
+4. Use the ```head``` function to examine the structure of ```occupancyData``` and ```locationData``` before proceeding.
+
+```{r}
+head(occupancyData)
+head(locationData)
+```
+
+## Create graphics
+
+5. Use the ```ggplot2``` package to create a [density plot](http://docs.ggplot2.org/0.9.3.1/geom_density.html) of the occupancy values across all locations. In Figure 1 of the [paper](http://www.journals.uchicago.edu/doi/10.1086/669903), you can see an example of how this plot should look. Your plot does not need to look exactly like the figure from the paper. But the shape of the data should look similar. Also, please add labels to the x and y axis that are similar to those in the paper.
+
+```{r}
+ggplot(occupancyData, aes(x = Occupancy)) + 
+  geom_density() + 
+  theme_bw() +
+  scale_y_continuous(breaks = seq(0, 2.5, by=0.5), name = "Density of species-sites") + 
+  scale_x_continuous(breaks = seq(0, 1, by = 0.2), name = "Proportion of time present at site")
+```
+
+6. Use ```ggplot2``` to create a [bar plot](http://docs.ggplot2.org/0.9.3.1/geom_bar.html) that shows the number of locations for which the species was predominately *core* or *transient*. Make sure to label the x axis and y axis. And make it so the two bars are shown in different colors. 
+
+```{r}
+ggplot(locationData, aes(x=PredominantSpeciesType, fill = PredominantSpeciesType)) +
+  geom_bar() + 
+  theme_bw() +
+  scale_fill_discrete("Species Type") +
+  labs(x ="Species Type", y = "Number of Occupied Locations")
+```
+
+7. What do you interpret from this graph?
+
+#### It appears that there are a lot of core species that occupy a lot more locations. In contrast, there are just a few locations that are occupied by transient species. However, it is also possible that there are a lot more observations recorded for core species.
+
+8. Use ```ggplot2``` to make a [scatter plot](http://docs.ggplot2.org/0.9.3/geom_point.html) that compares the total number of species (x axis) against NDVI (y axis). Color the points according to the predominant species type (core or transient). Change the size of the points according to elevation. Lastly, add a linear regression line to the plot.
+
+```{r}
+ggplot(locationData, aes(x = NumSpecies, y = NDVI)) +
+  geom_point(aes(color=PredominantSpeciesType, size = Elevation, show_guide=TRUE)) +
+  guides(color=guide_legend(title="Predominant Species Type")) +
+  theme(legend.position="bottom", legend.background = element_rect(colour = "black", fill = "grey93")) +
+  labs(x = "Number of Species", y = "Normalized Difference Vegetation Index") +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method = lm)
+```
+
+9. What do you interpret from this graph?
+
+#### The majority of core species seem to occupy locations with higher vegetation index and lower elevation. Transient species, on the other hand, occupy places with higher elevation and lower vegeration index.
+
+10. Use ```ggplot2``` to plot the predominant species type for each location on a map of the United States. Below is some code to help you get started. Use the ```[geom_point](http://docs.ggplot2.org/0.9.3/geom_point.html)``` function to add the points. Color the points according to the predominant species type for each location. Hint: you will need to use an aesthetic within this function to specific the longitude (x) and latitude (y) coordinates and to specify the color.
+
+```{r warning=FALSE}
+all_states <- map_data("state")
+
+ggplot(locationData) + 
+  geom_polygon(data=all_states, aes(x=long, y=lat, group = group), colour="black", fill="white") + 
+  expand_limits(x = all_states$Longitude, y = all_states$Latitude) + 
+  coord_map() +
+  theme_bw() +
+  geom_point(aes(x = Longitude, y = Latitude, color = PredominantSpeciesType)) +
+  labs (x = "Longitude", y = "Latitude") +
+  theme(legend.position = "top")
+```
+
+11. What do you interpret from this graph?
+
+#### There are mostly transient species in the West and Mid-West. East and West Coast have a lot more core species associated with them.
+
+## Submission
+
+After completing the steps requested above, knit this document and submit the resulting **HTML file** (not the Markdown file) via Learning Suite. Make sure to complete **all 11 parts** of this assignment before submitting it.

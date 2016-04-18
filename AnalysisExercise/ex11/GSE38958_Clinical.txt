@@ -1,0 +1,95 @@
+Age	Ethnicity	Sex	Class
+59	Caucasian American	female	Idiopathic pulmonary fibrosis (IPF)
+63	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+74	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+73	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+65	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+66	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+60	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+60	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+70	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+68	African American	female	Idiopathic pulmonary fibrosis (IPF)
+60	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+75	Caucasian American	female	Idiopathic pulmonary fibrosis (IPF)
+68	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+76	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+84	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+71	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+75	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+57	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+66	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+65	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+77	Hispanic American	male	Idiopathic pulmonary fibrosis (IPF)
+77	Hispanic American	male	Idiopathic pulmonary fibrosis (IPF)
+60	African American	male	Idiopathic pulmonary fibrosis (IPF)
+66	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+66	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+63	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+60	Caucasian American	female	Idiopathic pulmonary fibrosis (IPF)
+84	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+71	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+74	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+78	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+66	Hispanic American	male	Idiopathic pulmonary fibrosis (IPF)
+71	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+63	Hispanic American	male	Idiopathic pulmonary fibrosis (IPF)
+61	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+78	Caucasian American	male	Healthy control
+66	Caucasian American	male	Healthy control
+74	Caucasian American	male	Healthy control
+78	Caucasian American	male	Healthy control
+75	Caucasian American	male	Healthy control
+78	Caucasian American	male	Healthy control
+73	Caucasian American	male	Healthy control
+61	Caucasian American	male	Healthy control
+78	Caucasian American	male	Healthy control
+73	Caucasian American	male	Healthy control
+65	Caucasian American	male	Healthy control
+84	African American	male	Healthy control
+82	Caucasian American	male	Healthy control
+56	Caucasian American	male	Healthy control
+58	Caucasian American	male	Healthy control
+62	Caucasian American	male	Healthy control
+81	Caucasian American	male	Healthy control
+74	Caucasian American	male	Healthy control
+56	Caucasian American	male	Healthy control
+65	Caucasian American	female	Healthy control
+59	Caucasian American	female	Healthy control
+59	Caucasian American	female	Healthy control
+52	Caucasian American	female	Healthy control
+55	Caucasian American	female	Healthy control
+59	Caucasian American	male	Healthy control
+75	Caucasian American	male	Healthy control
+64	African American	male	Healthy control
+80	African American	female	Healthy control
+64	Caucasian American	female	Healthy control
+74	African American	female	Healthy control
+80	African American	female	Healthy control
+63	Caucasian American	male	Healthy control
+69	African American	female	Healthy control
+79	African American	female	Healthy control
+76	African American	male	Healthy control
+71	Caucasian American	female	Idiopathic pulmonary fibrosis (IPF)
+75	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+63	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+74	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+82	African American	female	Idiopathic pulmonary fibrosis (IPF)
+66	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+70	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+65	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+61	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+65	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+65	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+75	African American	male	Idiopathic pulmonary fibrosis (IPF)
+61	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+71	African American	female	Idiopathic pulmonary fibrosis (IPF)
+61	Asian American	male	Idiopathic pulmonary fibrosis (IPF)
+63	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+62	Caucasian American	female	Idiopathic pulmonary fibrosis (IPF)
+65	Caucasian American	female	Idiopathic pulmonary fibrosis (IPF)
+64	Caucasian American	female	Idiopathic pulmonary fibrosis (IPF)
+63	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+73	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+52	African American	female	Idiopathic pulmonary fibrosis (IPF)
+78	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)
+84	Caucasian American	male	Idiopathic pulmonary fibrosis (IPF)

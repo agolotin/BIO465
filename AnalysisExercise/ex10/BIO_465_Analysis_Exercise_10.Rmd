@@ -1,0 +1,258 @@
+---
+title: "BIO 465 Analysis Exercise 10"
+author: Artem Golotin
+date: March 14, 2015
+output: html_document
+---
+
+## Introduction
+
+The purposes of this assignment are 1) to help you gain experience applying clustering methods to biological data and 2) to give you practice writing R functions.
+
+## Install packages
+
+Please install the packages that will be used for this exercise, as shown below. (You may want to comment these lines of code after you have installed the packages)
+
+```{r message=FALSE, error=FALSE, cache.comments=FALSE, results='hide'}
+install.packages("mlr", repos="http://cran.us.r-project.org")
+install.packages("clue", repos="http://cran.us.r-project.org")
+install.packages("e1071", repos="http://cran.us.r-project.org")
+```
+
+## Load libraries
+
+Load the libraries that will be used for this exercise The main package that you will use for this exercise is called ```mlr```. A wide variety of R packages implement machine-learning methods (for example, ```clue``` and ```e1071```); the ```mlr``` package acts as a "wrapper" around these other packages so that you can interface with these packages in a consistent manner. You can find documentation on the ```mlr``` package [here](https://mlr-org.github.io/mlr-tutorial/release/html).
+
+In the commands below, the ```mlr``` and ```ggplot2``` libraries are loaded. You don't need to load the ```clue``` or ```e1071``` libraries explicitly. The ```mlr``` package will load these libraries behind the scenes.
+
+```{r message = FALSE}
+library(mlr)
+library(ggplot2)
+```
+
+## Clustering using the iris data
+
+The [iris flower data](https://en.wikipedia.org/wiki/Iris_flower_data_set) contains data for 3 Iris species (setosa, versicolor, virginica). It has 4 attributes (petal length, petal width, sepal length, sepal width) for each of 150 samples.
+
+For the clustering analysis, suppose that you do not know the species name of each sample. You will cluster the samples using multiple methods. Then you will evaluate the quality of the cluster assignments by comparing them against the actual species names and evaluating how consistent the cluster assignments are.
+
+First, take a look at the structure of the iris data.
+
+```{r}
+head(iris)
+```
+
+Each row is a sample. Each column is an attribute/feature.
+
+Create a new data frame that contains only the first four columns (thus excluding the ```Species``` column). Call this object ```irisFeatures```.
+
+```{r}
+irisFeatures <- iris[,1:4]
+```
+
+The following code shows how to make cluster assignments using the ```mlr``` package. This involves four main steps:
+
+1. Specifying the clustering algorithm ("learner") you want to use and which parameters you want to use for this algorithm. For this part of the exercise, you will use the ["k-means" clustering algorithm](https://en.wikipedia.org/wiki/K-means_clustering). This algorithm requires you to specify how many clusters you expect to see in the data. This value is specified using the ```centers``` parameter. Because we happen to know that our data set contains 3 iris species, we will set that value to 3.
+
+2. Next we create a cluster "task" by indicating which data we will use.
+
+3. Next we "train" the algorithm on the data (combining the learner with the task).
+
+4. Lastly, we obtain the results of the clustering process (the "model"). This enables us to see which samples were assigned to which cluster, etc.
+
+```{r indent = "    "}
+set.seed(1)
+
+cluster.learner <- makeLearner("cluster.kmeans", centers = 3)
+cluster.task <- makeClusterTask(data = irisFeatures)
+cluster.trained <- train(cluster.learner, cluster.task)
+cluster.model <- getLearnerModel(cluster.trained)
+```
+
+Use the ```str``` function to examine the contents of the model.
+
+```{r}
+str(cluster.model)
+```
+
+The ```cluster``` values indicate the cluster number assigned to each sample. To obtain these assignments, we could use code such as the following, which produces a vector of integer values:
+
+```{r}
+cluster.model$cluster
+```
+
+There are 3 distinct cluster values, as expected. The first 50 samples are assigned to cluster 1. The remaining 100 samples are assigned to either cluster 2 or cluster 3.
+
+The model also indicates the cluster "centers".
+
+```{r}
+cluster.model$center
+```
+
+Each cluster center indicates the value for each attribute (sepal length/width, petal length/width) that is representative of that cluster. Accordingly, samples that belong to a given cluster will have attribute values that are somewhat similar to these values. However, the attribute values for each sample will not be identical to the center values. You can get a sense for this variability using the ```withinss``` values, which indicate the [sum-of-squares difference](https://hlab.stanford.edu/brian/error_sum_of_squares.html) for each cluster. A smaller ```withinss``` value indicates that a cluster is relatively homogeneous, and vice versa.
+
+```{r}
+cluster.model$withinss
+```
+
+To get a better sense of the data, plot it.
+
+```{r}
+# Create a data frame, as required by ggplot2
+# Include the cluster assignments as well as the known Species names (for validation)
+plotData <- data.frame(Cluster=cluster.model$cluster, Species=iris$Species)
+
+# Plot the cluster assignments and show which species belong to which cluster
+ggplot(plotData, aes(Cluster, fill=Species)) + geom_bar() + ylab("Count") + ggtitle("Iris - kmeans clustering")
+```
+
+What do you observe about the clustering results? How well do the cluster assignments coincide with the actual species names? Do the results in the graph coincide with what you would expect based on the ```cluster.model$withinss``` values? Why or why not? [3-4 sentences]
+
+> In general, cluster assignments coinside fairly well with the actual species. Iris versicolor and Iris verginica have a less clear boundary between them, but it is clear enough that the algorithm still picked up on differences between clusters. The ```cluster.model$withinss``` data suggests that cluster 1 is the most homogeneous one, and cluster 2 and 3 are less homogeneous, with cluster 3 being the least homonegeous. The ```cluster.model$withinss``` values conincide with what I would expect and what is observed on the bar plot, since cluster 1 is completely homogeneous, cluster 2 only has a couple of values that don't make it fully homogeneous, and cluster 3 has about 1/6 of values that actaully are a part of a different true cluster.
+
+Think back to when we discussed the principal component analysis (PCA) method. We used the following code to derive principal components from the iris data and to plot these values.
+
+```{r}
+pcIrisData <- prcomp(iris[,-5], scale=TRUE)
+pcIrisDataFrame <- as.data.frame(pcIrisData$x)
+
+ggplot(pcIrisDataFrame, aes(x=PC1, y=PC2)) + 
+  geom_point(aes(col=iris$Species)) +
+  labs(col = "Iris Species")
+```
+
+How do the k-means clustering results compare against the patterns you see in the PCA results? [2-3 sentences]
+
+> The plot clearly portrays the relationship that can be seen in the bar plot above. Iris setosa forms the most homogeneous cluster, while Iris versicolor and Iris verginica have a much more fuzzy boundary between their respective clusters.
+
+In the above example, we used mostly default settings for the k-means clustering algorithm. However, it is also possible to specify various additional parameters. Using the command below, you can see the help documentation for the ```kmeans``` function, which the ```mlr``` package uses to derive the clusters.
+
+```{r}
+?kmeans
+```
+
+In addition to changing the number of clusters (```centers``` parameter), you can set the maximum number of iterations that are allowed, indicate how many random sets should be chosen, change the clustering algorithm that is used, etc. To change these parameters within the ```mlr``` package, you would specify them (by name) when creating the learner object. Below is an example.
+
+```{r}
+cluster.learner <- makeLearner("cluster.kmeans", centers=3, iter.max=100, nstart=20, algorithm="Lloyd")
+```
+
+You can also easily change the clustering algorithm that is used. For example, if you wanted to use the [Fuzzy C-Means clustering algorithm](https://en.wikipedia.org/wiki/Fuzzy_clustering#Fuzzy_c-means_clustering), you would use code such as the following.
+
+```{r}
+cluster.learner <- makeLearner("cluster.cmeans", centers=3)
+```
+
+To see the parameters that can be specified for this algorithm, you would use the following command:
+
+```{r}
+?cmeans
+```
+
+## Evaluating and comparing clustering algorithms
+
+Please do the following to compare the k-means and Fuzzy C-Means clustering algorithms:
+
+1. Create an R function that enables you to derive clusters for a given clustering algorithm. Similar to the example above, this function should a) set the random seed to 1, b) execute the ```makeLearner```, ```makeClusterTask```, ```train```, and ```getLearnerModel``` functions, and c) return the cluster assignments (as a vector). The function should specify centers=3 in all cases. The function should also accept a parameter that specifies the name of the clustering algorithm that you want to execute (e.g., "cluster.kmeans"), and it should accept additional parameters (see below). These parameters should be relayed to the ```makeLearner``` function. To enable flexibility in passing these parameters, use the [three-dots construct](http://www.burns-stat.com/the-three-dots-construct-in-r/).
+
+2. Using the R function that you just created, make cluster assignments for the iris data using the k-means clustering algorithm. Initially, use default parameters. Then run it a second time, but change the kmeans ```algorithm``` parameter to "Lloyd" and the ```iter.max``` parameter to 100. (Use ```?kmeans``` to see what these parameters do.) Save the cluster assignments to variables called ```kmeans_default``` and ```kmeans_Lloyd100```, respectively.
+
+3. Now use the R function to make cluster assignments using the Fuzzy C-Means clustering algorithm (cmeans). Initially, use default parameters. Then change the   ```dist``` parameter to "manhattan" and the ```m``` parameter to 10. (Use ```?cmeans``` to see what these parameters do.) Save the cluster assignments to variables called ```cmeans_default``` and ```cmeans_manhattan10```, respectively.
+
+4. Write an R function that creates bar plots of the cluster assignments (see example above). Each bar should be colored by the actual species labels. This function should include a parameter that lets you specify the plot title.
+
+5. Using the function that you just created, plot the cluster assignments for ```kmeans_default```, ```kmeans_Lloyd100```, ```cmeans_default```, and ```cmeans_manhattan10```. Specify an appropriate plot title for each plot.
+
+
+```{r indent = "    "}
+# Step #1
+executeLearner <- function(learner, ...) {
+  set.seed(1)
+
+  cluster.learner <- makeLearner(learner, centers = 3, ...)
+  cluster.task <- makeClusterTask(data = irisFeatures)
+  cluster.trained <- train(cluster.learner, cluster.task)
+  cluster.model <- getLearnerModel(cluster.trained)
+  
+  return (cluster.model$cluster)
+}
+
+# Step #2
+kmeans_default <- executeLearner("cluster.kmeans")
+kmeans_Lloyd100 <- executeLearner("cluster.kmeans", algorithm = "Lloyd", iter.max = 100)
+
+# Step #3
+cmeans_default <- executeLearner("cluster.cmeans")
+cmeans_manhattan10 <- executeLearner("cluster.cmeans", dist = "manhattan", m = 10)
+
+# Step #4
+barPlotThisBaby <- function(assigned_clusters) {
+  plotData <- data.frame(Cluster = assigned_clusters, Species = iris$Species)
+  
+  ggplot(plotData, aes(Cluster, fill=Species)) + 
+    geom_bar() + 
+    theme_bw() +
+    ylab("Count") + 
+    ggtitle("Iris Clusters") +
+    theme(legend.position="bottom")
+}
+
+# Step #5
+barPlotThisBaby(kmeans_default)
+barPlotThisBaby(kmeans_Lloyd100)
+barPlotThisBaby(cmeans_default)
+barPlotThisBaby(cmeans_manhattan10)
+```
+
+6. Note that clusters #2 for k-means are pretty similar to clusters #3 for Fuzzy C-Means, and vice versa. To enable a fairer comparison between k-means and c-means, apply the following code to switch the #2 and #3 labels.
+
+```{r indent = "    "}
+switchClusterLabels <- function(clusterAssignments)
+{
+  # Change all the cluster 2 assignments to -1 (temporarily)
+  clusterAssignments[clusterAssignments==2] = -1
+
+  # Change all the cluster 3 assignments to 2
+  clusterAssignments[clusterAssignments==3] = 2
+
+  # Change all the (formerly) cluster 2 assignments to 3
+  clusterAssignments[clusterAssignments==-1] = 3
+  
+  return(clusterAssignments)
+}
+
+cmeans_default = switchClusterLabels(cmeans_default)
+cmeans_manhattan10 = switchClusterLabels(cmeans_manhattan10)
+```
+
+7. Write an R function that compares pairs of cluster assignments and calculates the proportion of iris samples that were assigned to the same cluster for both cluster assignments. Apply this R function to the following pairs of cluster assignments:
+
+    a. ```kmeans_default``` and ```kmeans_Lloyd100```
+    b. ```cmeans_default``` and ```cmeans_manhattan10```
+    c. ```kmeans_default``` and ```cmeans_default```
+
+```{r indent = "        "}
+compareClusters <- function(cluster1, cluster2) {
+  a <- 0
+  
+  for (i in 1:150) {
+    if (cluster1[i] == cluster2[i]) {
+      a <- a + 1
+    }
+  }
+  
+  return (a / 150)
+}
+
+compareClusters(kmeans_default, kmeans_Lloyd100)
+compareClusters(cmeans_default, cmeans_manhattan10)
+compareClusters(kmeans_default, cmeans_default)
+```
+
+8. Which of these pairs of cluster assignments is most consistent with each other?
+
+> It seems that ```kmeans_default``` and ```kmeans_Lloyd100``` is the most consistent pair of clusters, since two algorithms assigned over 99% of instances to the same exact clusters.
+
+## Submission
+
+After completing the steps requested above, knit this document and submit the resulting **HTML file** (not the Markdown file) via Learning Suite. You will be graded on whether you created and applied the functions properly and whether you provided meaningful interpretations, when requested.

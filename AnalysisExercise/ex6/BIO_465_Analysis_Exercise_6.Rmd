@@ -1,0 +1,186 @@
+---
+title: "BIO 465 Analysis Exercise 6"
+output: html_document
+author: Artem Golotin
+date: February 19, 2016
+---
+
+## Introduction
+
+The purpose of this assignment is to give you experience working with the "bootstrapping" statistical method. In class, we briefly discussed an example of using this method to calculate confidence intervals for a two-sample t-test. For this assignment, you will need to write code that implements this method. Although it is possible to calculate confidence intervals for a t-test using a traditional mathematical approach, it is infeasible to calculate confidence intervals for many other types of statistical analysis. This exercise will help you gain practice with bootstrapping (on a relatively simple case) and to compare your findings against what you would get with a more traditional approach.
+
+It may be helpful for you to look at the slides from class and the accompanying demo code (see links on Content tab in Learning Suite).
+
+The following vectors were used in the examples given in class. They represent (fictional) hair lengths for a sample of men at BYU and Utah, respectively. The lengths were measured in inches. For the purposes of this assignment, assume that the data are normally distributed.
+
+```{r}
+byuHair <- c(0.54, 0.75, 2.45, 4.23, 0.00, 1.21, 1.98, 5.54, 0.15, 2.67, 0.00, 1.98, 1.34, 4.31, 2.22, 0.99)
+utahHair <- c( 1.11, 10.5, 4.06, 7.92, 0.21, 1.54, 0.00, 0.25, 2.95, 5.42, 0.55, 3.88, 15.2, 1.33, 1.44, 6.65)
+```
+
+If you wanted to evaluate whether there were a statistically significant difference in men's hair lengths between the two universities, you could use [Student's t-test](https://en.wikipedia.org/wiki/Student%27s_t-test).
+
+```{r}
+t.test(byuHair, utahHair)
+```
+
+If you wanted to obtain just the t-statistic, you could use the following code:
+
+```{r}
+tStatistic <- t.test(byuHair, utahHair)$statistic
+```
+
+Or if you wanted to obtain just the p-value, you could use the following code:
+
+```{r}
+pValue <- t.test(byuHair, utahHair)$p.value
+```
+
+Or if you had the t-statistic (but not the p-value) and wanted to calculate the p-value, you could use the following function:
+
+```{r}
+# This function assumes the variances of x and y are unequal
+calculatePValue <- function(tStatistic, x, y)
+{
+  # Calculate the length of x and y
+  nx <- length(x)
+  ny <- length(y)
+  
+  # Calculate the variance of x and y
+  vx <- var(byuHair)
+  vy <- var(utahHair)
+
+  # Calculate the standard errors of x and y
+  stderrx <- sqrt(vx/nx)
+  stderry <- sqrt(vy/ny)
+  
+  # Calculate the combined standard error
+  stderr <- sqrt(stderrx^2 + stderry^2)
+
+  # Calculate the degrees of freedom
+  df <- stderr^4/(stderrx^4/(nx - 1) + stderry^4/(ny - 1))
+  
+  # Calculate the p-value
+  pval <- 2 * pt(-abs(tStatistic), df)
+  
+  return(pval)
+}
+
+calculatePValue(tStatistic, byuHair, utahHair)
+```
+
+Use the bootstrapping method to calculate 95% confidence intervals for this data set, using the following steps:
+
+1. Obtain the t-statistic for the entire sample.
+```{r indent = "    "}
+tStatistic <- t.test(byuHair, utahHair)$statistic
+```
+
+2. Normalize the data. (This step makes it more fair to compare data between the groups. We have to assume that the BYU and Utah students both come from the same overall population.)
+
+    a. Calculate the mean hair length across all students (from both schools). Assign it to a variable called ```combinedMean```.
+```{r indent = "        "}
+combinedMean <- mean(c(byuHair, utahHair))
+```
+    b. Calculate the mean hair length for students from BYU. Assign it to a variable called ```byuMean```.
+```{r indent = "        "}
+byuMean <- mean(byuHair)
+```
+    c. Calculate the mean hair length for students from Utah. Assign it to a variable called ```utahMean```.
+```{r indent = "        "}
+utahMean <- mean(utahHair)
+```
+    d. Subtract ```byuMean``` from the hair-length value of each BYU student. Assign this to a variable called ```normalizedBYUHair```.
+```{r indent = "        "}
+normalizedBYUHair <- byuHair - byuMean
+```
+    e. Subtract ```utahMean``` from the hair-length value of each Utah student. Assign this to a variable called ```normalizedUtahHair```.
+```{r indent = "        "}
+normalizedUtahHair <- utahHair - utahMean
+```
+    f. Add ```combinedMean``` to ```normalizedBYUHair``` and ```normalizedUtahHair```.
+```{r indent = "        "}
+combinedBYUMean <- combinedMean + normalizedBYUHair
+combinedUtahMean <- combinedMean + normalizedUtahHair
+```
+    g. Create a variable called ```N1``` that indicates the number of BYU students in the sample.
+```{r indent = "        "}
+N1 = length(combinedBYUMean)
+```
+    h. Create a variable called ```N2``` that indicates the number of Utah students in the sample.
+```{r indent = "        "}
+N2 = length(combinedUtahMean)
+```
+
+3. Because resampling is a random process, it will produce different results each time. To ensure that you get the same result each time, set a random seed. For the purposes of this exercise, set the seed value to 1.
+
+4. Repeat the following 1000 times:
+
+    a. Extract a resample (with replacement) of size ```N1``` from ```normalizedBYUHair```.
+    b. Extract a resample (with replacement) of size ```N2``` from ```normalizedUtahHair```.
+    c. Compute the t-test statistic for this resample.
+    
+```{r indent = "        "}
+set.seed(1)
+tTestStatistic <- NULL
+
+for (i in 1:1000) {
+  newSampleBYU <- sample(normalizedBYUHair, N1, replace = TRUE)
+  newSampleUtah <- sample(normalizedUtahHair, N2, replace = TRUE)
+  tTestStatistic <- c(tTestStatistic, t.test(newSampleBYU, newSampleUtah)$statistic)
+}
+```
+
+5. Calculate the standard deviation of the resampled statistics.
+```{r indent = "    "} 
+standardDev <- sd(tTestStatistic)
+```
+
+6. Calculate the 95% confidence interval as the sample t-statistic +/- 2 standard deviations of the resampled t-statistics.
+```{r indent = "    "}
+lowerT <- tStatistic - 2 * standardDev
+upperT <- tStatistic + 2 * standardDev
+```
+
+7. Convert the t-statistics at the lower and upper bounds of the confidence interval to p-values (using the ```calculatePValue``` function shown above).
+
+```{r indent = "    "}
+lowerP <- calculatePValue(lowerT, byuHair, utahHair)
+upperP <- calculatePValue(upperT, byuHair, utahHair)
+```
+
+## Results
+
+Please display your results below:
+```{r eval=TRUE}
+print(lowerT)
+print(upperT)
+print(lowerP)
+print(upperP)
+```
+
+## Expected results
+
+If everything worked as expected, you should get the following:
+
+t-statistic for lower bound of 95% confidence interval: ```-4.027677```
+
+t-statistic for upper bound of 95% confidence interval: ```0.4828904```
+
+p-value for lower bound of 95% confidence interval: ```0.0007007297```
+
+p-value for upper bound of 95% confidence interval: ```0.6346077```
+
+## Interpretation
+
+Based on these observations, what do you conclude about the difference between men's hair lengths at BYU and Utah?
+
+> My conclusion is that the difference between men's hair legnth at BYU and Utah are not significant. The reason being is that the upper bound for the 95% confidence interval is so high, which means that there is not enough evidence to reject the null hypothesis.
+
+Compare the 95% confidence intervals for the t-statistic against what was observed using the ```t.test``` function in R. What do you conclude about the bootstrapping method's ability to approximate the confidence interval?
+
+> The 95% confidence interval results of the t.test function were -4.4479292 for the lower bound and 0.3666792 for the upper bound. As for the bootstrapping method, the 95% confidence intervals are -4.0276773 and 0.4828904 for lower bound and upper bound respectively. The values produced by both of the tests are not the same, but are really close together, which suggests to me that bootstrapping is a good way to estimate confidence intervals. 
+
+## Submission
+
+After completing the steps requested above, knit this document and submit the resulting **HTML file** (not the Markdown file) via Learning Suite. Make sure to complete all parts of this assignment before submitting it.

@@ -1,0 +1,102 @@
+---
+title: "BIO 465 Analysis Exercise 9"
+author: "Artem Golotin"
+date: "March 11, 2016"
+output: html_document
+---
+
+## Preparation
+
+First, we have to load all of the files described in the *Introduction* of the Analysis Exercise. Even though not all of them are going to be used, for the purposes of being able to easily view the datasets in RStudio we load everything into memory. Also, in this step we load all of the libraries that we are going to use.
+
+```{r message=FALSE, error=FALSE, cache.comments=FALSE, results='hide'}
+setwd("/Users/agolotin/Desktop/BIO465/AnalysisExercise/ex9")
+
+source("https://bioconductor.org/biocLite.R")
+biocLite("GSEABase")
+
+library(GSEABase)
+library(readr)
+library(plyr)
+
+tpmERP <- read_delim("ERP001458.tpm", delim = "\t")
+phenoERP <- read_delim("ERP001458.pheno", delim = "\t")
+deseqERP <- read_delim("ERP001458.deseq", delim = "\t")
+gageERP <- read_delim("ERP001458.gage", delim = "\t")
+geneSetDatabase <- getGmt("c2.cp.reactome.v4.0.symbols.gmt")
+```
+
+I have decided to perform **two** different (and at the same time, fairly similar in code) gene-set analysis methods instead of one. 
+
+## First analysis
+
+For the first analysis I decided to follow the easy path that was described in the *Guidelines* section. First, I extract all of the rows from the DESeq2 data that correspond to all of the genes for a particular gene set. Then, I extract and average all of the p-values for that gene set. All of the average p-values per gene set and gene set names are stored in separate variables Then I create a data frame object from all of the gene names and p-values and order them by p-value in ascending order. 
+
+```{r}
+gene_set_name <- NULL
+p_vals <- NULL
+
+# Loop through each gene set
+for (geneSetName in names(geneSetDatabase))
+{ 
+  # Create a variable that indicates which genes are associated with this gene set
+  geneSetGenes <- as.character(unlist(geneIds(geneSetDatabase[geneSetName])))
+  # Extract all of the genes for gene set
+  deseqGeneSet <- deseqERP[as.character(unlist(deseqERP[,1])) %in% geneSetGenes,]
+  # Exctract all p-values for gene set
+  pVals <- deseqGeneSet[,which(colnames(deseqGeneSet) == "pvalue")]
+  # Avergae p-values
+  pAvg <- sum(pVals, na.rm = TRUE) / length(pVals)
+  # Save the gene set name and p-value for later
+  gene_set_name <- c(gene_set_name, geneSetName)
+  p_vals <- c(p_vals, pAvg)
+}
+# Create a data frame and arrage it in ascending order
+newGageData <- data.frame(gene_set_name, p_vals)
+newGageData <- arrange(newGageData, p_vals)
+
+as.character(unlist(newGageData[1:20,1])) # My results
+as.character(unlist(gageERP[1:20,1])) # Provided results
+```
+
+There are ```0``` gene sets that overlapped with the provided results in my top 20.
+
+## Second analysis
+
+For the second analysis I decided to run a t-test on knockdows and controls expression values. First, I get all of the rows from the expression data that correspond to a certain gene set. Then, I extract all of the cases and controls into different vectors and perform a t-test. As in the previous analysis, I store all of the p-values and gene set names separately. Once I finish going through all of the gene sets I put all of the gene set names and p-values in a data frame and order the data frame by p-value in ascending order.
+
+```{r}
+gene_set_name <- NULL
+p_vals <- NULL
+
+# Loop through each gene set
+for (geneSetName in names(geneSetDatabase))
+{ 
+  # Create a variable that indicates which genes are associated with this gene set
+  geneSetGenes <- as.character(unlist(geneIds(geneSetDatabase[geneSetName])))
+  tpmSetExpression <- tpmERP[as.character(unlist(tpmERP[,1])) %in% geneSetGenes, ]
+  # Separate cases from contorls
+  cases <- tpmSetExpression[2:5]
+  controls <- tpmSetExpression[6:9]
+  # Perform t-test and extract just the p-value
+  pValue <- t.test(cases, controls)$p.value
+  # Save the gene set name and p-value for later
+  gene_set_name <- c(gene_set_name, geneSetName)
+  p_vals <- c(p_vals, pValue)
+}
+# Create a data frame and arrage it in ascending order
+newGageData <- data.frame(gene_set_name, p_vals)
+newGageData <- arrange(newGageData, p_vals)
+
+ngd20 <- as.character(unlist(newGageData[1:20,1]))
+g20 <- as.character(unlist(gageERP[1:20,1]))
+ngd20 # My results
+g20 # Provided results
+```
+
+There are ```3``` gene sets that overlapped with the provided results in my top 20. The gene sets and their respective p-values are shown below.
+
+```{r}
+newGageData[1:20,][ngd20 %in% g20,]
+gageERP[1:20,1:2][g20 %in% ngd20,]
+```

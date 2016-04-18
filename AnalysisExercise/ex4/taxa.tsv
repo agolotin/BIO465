@@ -1,0 +1,20 @@
+taxa.id	kingdom	phylum	class	order	family	genus	species
+taxa0	Bacteria	Proteobacteria	Deltaproteobacteria	Syntrophobacterales	Desulfobacteraceae		
+taxa1	Bacteria	Actinobacteria	Actinobacteria	Actinomycetales	Corynebacteriaceae	Corynebacterium	
+taxa5	Bacteria	Cyanobacteria	S15B-MN24				
+taxa7	Bacteria	SR1					
+taxa9	Bacteria	Proteobacteria	Gammaproteobacteria	Pseudomonadales	Moraxellaceae	Acinetobacter	Acinetobacterursingii
+taxa10	Bacteria	Proteobacteria	Alphaproteobacteria	Sphingomonadales	Sphingomonadaceae	Sphingomonas	
+taxa11	Bacteria	Bacteroidetes	Sphingobacteria	Sphingobacteriales	Flexibacteraceae	Dyadobacter	
+taxa12	Bacteria	Proteobacteria	Alphaproteobacteria	Rhizobiales			
+taxa13	Bacteria	Cyanobacteria	Chloroplast	Chlorophyta	Trebouxiophyceae		
+taxa14	Bacteria	ABY1_OD1					
+taxa15	Bacteria	Bacteroidetes	Sphingobacteria	Sphingobacteriales	Sphingobacteriaceae		
+taxa16	Bacteria	Bacteroidetes	Sphingobacteria	Sphingobacteriales	Flexibacteraceae	Dyadobacter	
+taxa17	Bacteria	Firmicutes	Bacilli	Lactobacillales	Lactobacillaceae	Lactobacillus	
+taxa18	Bacteria	Actinobacteria	Actinobacteria	Actinomycetales	Corynebacteriaceae	Corynebacterium	Corynebacteriumrenale
+taxa19	Bacteria	Cyanobacteria	Chloroplast				
+taxa20	Bacteria	Bacteroidetes	Flavobacteria	Flavobacteriales	Flavobacteriaceae		
+taxa21	Bacteria	Proteobacteria	Alphaproteobacteria	Sphingomonadales	Sphingomonadaceae	Sphingomonas	
+taxa22	Bacteria	Bacteroidetes	Sphingobacteria	Sphingobacteriales	Flexibacteraceae	Dyadobacter	
+taxa23	Bacteria	Actinobacteria	Actinobacteria	Actinomycetales	Nocardioidaceae		
